@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\PhpWord;
 use PHPWord_IOFactory;
+use Psy\Util\Str;
 
 class ShowDocsController extends Controller
 {
@@ -14,13 +18,14 @@ class ShowDocsController extends Controller
         $documents = Document::all();
         return view('showdocs',['documents' => $documents]);
     }
-public function parse(Document $document){
-
+public function parse(Document $document) {
      //  echo $document->all('path');
 
     //$objReader = PhpOffice\PhpWord\IOFactory::createReader('Word2007');
-    $objReader = PHPWord_IOFactory::createReader('Word2007');
-    $phpWord = $objReader->load($document->all('path'));
+//    $objReader = PHPWord_IOFactory::createReader('Word2007');
+
+    $objReader = IOFactory::createReader('Word2007');
+    $phpWord = $objReader->load(Storage::path($document->path. '/'. $document->name));
 
     $body = '';
 
@@ -77,7 +82,8 @@ public function parse(Document $document){
 
     echo 'Файл создан и готов к просмотру.';
 
-    $phpWord = new PhpOffice\PhpWord\PhpWord();
+    $phpWord = new PhpWord();
+//    $phpWord = new PhpOffice\PhpWord\PhpWord();
 
     $phpWord->setDefaultFontName('Times New Roman');
     $phpWord->setDefaultFontSize(14);
@@ -107,8 +113,9 @@ public function parse(Document $document){
         array()
     );
 
-    $objWriter = PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-    $objWriter->save('doc1.docx');
+    $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
+//    $objWriter = PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+    $objWriter->save(Storage::path($document->path . '/' . 'doc1.docx'));
 
 }
 }

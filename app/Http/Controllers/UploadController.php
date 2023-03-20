@@ -13,26 +13,31 @@ class UploadController extends Controller
 {
     public function upload(Request $request)
     {
-        // загрузка файла
-        if ($request->isMethod('post') && $request->file('userfile')) {
+        try {
+            // загрузка файла
+            if ($request->isMethod('post') && $request->file('userfile')) {
 
-            $request->validate([
+                $request->validate([
 
-                'userfile' => 'mimes:docx'
-            ]);
-            $file = $request->file('userfile');
-            $upload_folder = 'public/folder';
-            $filename = $file->getClientOriginalName(); // image.jpg
+                    'userfile' => 'mimes:docx'
+                ]);
+                $file = $request->file('userfile');
+                $upload_folder = 'public/folder';
+                $filename = $file->getClientOriginalName(); // image.jpg
 
-            Storage::putFileAs($upload_folder, $file, $filename);
+                Storage::putFileAs($upload_folder, $file, $filename);
 
-            $document = new Document();
-            $document->name = $filename;
-            $document->path = $upload_folder;
-            $document->save();}
+                $document = new Document();
+                $document->name = $filename;
+                $document->path = $upload_folder;
+                $document->save();
+            }
 
-       // Document::create($arr['name'=> $request->file('userfile'),
-        //'path' => 'public/folder'])
+            // Document::create($arr['name'=> $request->file('userfile'),
+            //'path' => 'public/folder'])
+        } catch (\Exception $exception) {
+            echo $exception->getMessage();
+        }
         return view('document');
 
     }
