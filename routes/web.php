@@ -23,5 +23,6 @@ Route::any('/upload',[UploadController::class, 'upload']);
 
 Route::get('/showDocs',[ShowDocsController::class, 'showDocs']);
 
-Route::any('/document/{document}/parse',[ShowDocsController::class, 'parse'])->name('parse');
+Route::any('/document/{document}/parseToFile',[ShowDocsController::class, 'parseToFile'])->name('parseToFile');
 
+Route::any('/document/{document}/parseToDisplay',[ShowDocsController::class, 'parseToDisplay'])->name('parseToDisplay');

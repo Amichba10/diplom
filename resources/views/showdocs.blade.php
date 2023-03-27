@@ -26,10 +26,15 @@
             <td>{{ $item->id }}</td>
             <td>{{ $item->name }}</td>
             <td>{{ $item->path }}</td>
-            <td><form action={{route('parse', [$item->id])}} method="post" enctype="multipart/form-data">
+            <td><form action={{route('parseToFile', [$item->id])}} method="post" enctype="multipart/form-data">
             @csrf              <!-- с версии Laravel 5.6 -->
                 <!-- поле для загрузки файла -->
                 <input type="submit"    value="Распарсить">
+                </form></td>
+            <td><form action={{route('parseToDisplay', [$item->id])}} method="post" enctype="multipart/form-data">
+                    @csrf              <!-- с версии Laravel 5.6 -->
+                    <!-- поле для загрузки файла -->
+                    <input type="submit"    value="Вывести на экран">
                 </form></td>
 
         </tr>
