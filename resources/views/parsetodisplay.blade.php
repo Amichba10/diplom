@@ -9,9 +9,14 @@
 </head>
 <body><table class="table table-bordered table-hover">
     <tbody>
-    @foreach($v as $item)
+    @foreach($res as $item)
         <tr>
-            <td>{{ $item }}</td>
+            <td><form action={{route('addExceptional')}} method="post" enctype="multipart/form-data">
+                @csrf              <!-- с версии Laravel 5.6 -->
+                    <!-- поле для загрузки файла -->
+                    <input type="text" name="word" value="{{$item}}" readonly>
+                    <input type="submit"    value="Добавить в исключения">
+                </form></td>
         </tr>
 @endforeach
 </table>

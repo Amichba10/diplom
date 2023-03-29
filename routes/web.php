@@ -26,3 +26,5 @@ Route::get('/showDocs',[ShowDocsController::class, 'showDocs']);
 Route::any('/document/{document}/parseToFile',[ShowDocsController::class, 'parseToFile'])->name('parseToFile');
 
 Route::any('/document/{document}/parseToDisplay',[ShowDocsController::class, 'parseToDisplay'])->name('parseToDisplay');
+
+Route::any('/document/exceptional/',[ShowDocsController::class, 'addExceptional'])->name('addExceptional');

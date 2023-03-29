@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\Exceptional;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use mysql_xdevapi\TableSelect;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use PHPWord_IOFactory;
@@ -17,83 +22,113 @@ class ShowDocsController extends Controller
     public function showDocs()
     {
         $documents = Document::all();
-        return view('showdocs', ['documents' => $documents]);
+        return view("showdocs", ["documents" => $documents]);
     }
 
     public function parseToFile(Document $document)
     {
-        $out = $this->parse($document, true);
+        $v = $this->parse($document);
+        $exceptionalWords = DB::table("exceptionals")
+            ->where("status", "APPROVED")
+            ->pluck("word")
+            ->toArray();
+
+        $diff = array_diff($v, $exceptionalWords);
+        $out = "";
+        foreach ($diff as $key => $value) {
+            if (count($diff) - 1 == $key) {
+                $out .= $value . "<br>";
+            } else {
+                $out .= $value . "<br>";
+            }
+        }
+        $out = str_replace("<br>", "<w:br/>", $out);
 
         $phpWord = new PhpWord();
-//    $phpWord = new PhpOffice\PhpWord\PhpWord();
+        //    $phpWord = new PhpOffice\PhpWord\PhpWord();
 
-        $phpWord->setDefaultFontName('Times New Roman');
+        $phpWord->setDefaultFontName("Times New Roman");
         $phpWord->setDefaultFontSize(14);
 
         $properties = $phpWord->getDocInfo();
-        $properties->setCreator('My name');
-        $properties->setCompany('My factory');
-        $properties->setTitle('My title');
-        $properties->setDescription('My description');
-        $properties->setCategory('My category');
-        $properties->setLastModifiedBy('My name');
+        $properties->setCreator("My name");
+        $properties->setCompany("My factory");
+        $properties->setTitle("My title");
+        $properties->setDescription("My description");
+        $properties->setCategory("My category");
+        $properties->setLastModifiedBy("My name");
         $properties->setCreated(mktime(0, 0, 0, 3, 12, 2014));
         $properties->setModified(mktime(0, 0, 0, 3, 14, 2014));
-        $properties->setSubject('My subject');
-        $properties->setKeywords('my, key, word');
+        $properties->setSubject("My subject");
+        $properties->setKeywords("my, key, word");
 
-        $sectionStyle = array();
+        $sectionStyle = [];
         $section = $phpWord->addSection($sectionStyle);
 
-        $text = 'Глаголы в тексте без повторений:';
-        $phpWord->addParagraphStyle('Content', array('bold' => false, 'align' => 'center'));
-        $section->addText($text, null, 'Content');
+        $text = "Глаголы в тексте без повторений:";
+        $phpWord->addParagraphStyle("Content", [
+            "bold" => false,
+            "align" => "center",
+        ]);
+        $section->addText($text, null, "Content");
 
-        $section->addText(
-            $out,
-            array(),
-            array()
-        );
+        $section->addText($out, [], []);
 
-        $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
-//    $objWriter = PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-        $objWriter->save(Storage::path($document->path . '/' . 'doc1.docx'));
+        $objWriter = IOFactory::createWriter($phpWord, "Word2007");
+        //    $objWriter = PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+        $objWriter->save(Storage::path($document->path . "/" . "parsing.docx"));
         return redirect()->back();
     }
 
     public function parseToDisplay(Document $document)
     {
         $v = $this->parse($document);
-        return view('parsetodisplay', compact('v'));
+        $exceptionalWords = DB::table("exceptionals")
+            ->where("status", "APPROVED")
+            ->pluck("word")
+            ->toArray();
+
+        $diff = array_diff($v, $exceptionalWords);
+
+        $res = $this->paginate($diff);
+
+        // получить массив исключений
+        // отнять от массива $v массив исключений array_diff
+
+        return view("parsetodisplay", compact("res"));
     }
 
-    public function parse(Document $document, bool $isParseToFile = false)
+    public function parse(Document $document)
     {
         //  echo $document->all('path');
 
         //$objReader = PhpOffice\PhpWord\IOFactory::createReader('Word2007');
-//    $objReader = PHPWord_IOFactory::createReader('Word2007');
+        //    $objReader = PHPWord_IOFactory::createReader('Word2007');
         error_reporting(0);
-        $objReader = IOFactory::createReader('Word2007');
-        $phpWord = $objReader->load(Storage::path($document->path . '/' . $document->name));
+        $objReader = IOFactory::createReader("Word2007");
+        $phpWord = $objReader->load(
+            Storage::path($document->path . "/" . $document->name)
+        );
 
-        $body = '';
+        $body = "";
 
         foreach ($phpWord->getSections() as $section) {
             $arrays = $section->getElements();
 
             foreach ($arrays as $e) {
-                if (get_class($e) === 'PhpOffice\PhpWord\Element\TextRun') {
+                if (get_class($e) === "PhpOffice\PhpWord\Element\TextRun") {
                     foreach ($e->getElements() as $text) {
                         $font = $text->getFontStyle();
                         $size = $font->getSize() / 10;
-                        $bold = $font->isBold() ? 'font-weight:700;' : '';
+                        $bold = $font->isBold() ? "font-weight:700;" : "";
                         $color = $font->getColor();
                         $fontFamily = $font->getName();
                         $body .= $text->getText();
                     }
-                } else if (get_class($e) === 'PhpOffice\PhpWord\Element\TextBreak') {
-                    $body .= '<br />';
+                } elseif (
+                    get_class($e) === "PhpOffice\PhpWord\Element\TextBreak"
+                ) {
+                    $body .= "<br />";
                 } else {
                     get_class($e);
                 }
@@ -101,38 +136,63 @@ class ShowDocsController extends Controller
             break;
         }
 
-//echo '<p><b>Текст находяйщийся в файле:</b></p>';
-//echo $body;
-        $bodyres = preg_replace("/(?!.[.=$'€%-])\p{P}/u", "", mb_convert_case($body, MB_CASE_LOWER));
-//echo $bodyres;
-        $arr = array_unique(explode(' ', $bodyres));
+        //echo '<p><b>Текст находяйщийся в файле:</b></p>';
+        //echo $body;
+        $bodyres = preg_replace(
+            "/(?!.[.=$'€%-])\p{P}/u",
+            "",
+            mb_convert_case($body, MB_CASE_LOWER)
+        );
+        //echo $bodyres;
+        $arr = array_unique(explode(" ", $bodyres));
         for ($i = 0; $i < count($arr); $i++) {
             $arr[$i] = $arr[$i] . "<br>";
         }
 
-        $res = implode(' ', $arr);
-        $delpr = str_replace(' ', '', $res);
+        $res = implode(" ", $arr);
+        $delpr = str_replace(" ", "", $res);
 
         //echo '<p><b>Слова в тексте без повторений:</b></p>';
         //echo $res;
 
-        $out = '';
-        preg_match_all('/[a-ҿҽәӡӷҚԥ,-]{3,}(ит|еит|оит|уп|он|ан)\b/ui', $delpr, $v);
-        //dd($v[0]);
-        foreach ($v[0] as $key => $value) {
-            if (count($v[0]) - 1 == $key) {
-                $out .= $value . "<br>";
-            } else {
-                $out .= $value . "<br>";
-            }
-        }
-
-        if ($isParseToFile) {
-            $out = str_replace("<br>", "<w:br/>", $out);
-            return $out;
-        }
+        preg_match_all(
+            '/[a-ҿҽәӡӷҚԥ,-]{3,}(ит|еит|оит|уп|он|ан|хьаз|хьоу|лак|цыԥхьаӡа|
+                          аанӡа|ҵауа|аҵо|ҵар|ҵара|ҵаша|аанӡа|ӡом|ҵамкәа|ҵазар|ндаз|ижьҭеи|
+                          наҵы|зҭгьы|ҵашәа)\b/ui',
+            $delpr,
+            $v
+        );
 
         return $v[0];
     }
-}
 
+    public function addExceptional(Request $request)
+    {
+        //        dd($request);
+        $word = $request->post("word");
+
+        $exceptional = new Exceptional();
+        $exceptional->word = $word;
+        $exceptional->status = Exceptional::STATUS_NEW;
+        $exceptional->save();
+
+        return redirect()->back();
+    }
+    public function paginate(
+        $items,
+        $perPage = 100,
+        $page = null,
+        $options = []
+    ) {
+        $page = $page ?: (Paginator::resolveCurrentPage() ?: 1);
+        $items =
+            $items instanceof Collection ? $items : Collection::make($items);
+        return new LengthAwarePaginator(
+            $items->forPage($page, $perPage),
+            $items->count(),
+            $perPage,
+            $page,
+            $options
+        );
+    }
+}
