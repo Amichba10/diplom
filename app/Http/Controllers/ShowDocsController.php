@@ -176,11 +176,11 @@ class ShowDocsController extends Controller
         $exceptional->status = Exceptional::STATUS_NEW;
         $exceptional->save();
 
-        return redirect()->back();
+        return response()->json(['success'=>'Added']);
     }
     public function paginate(
         $items,
-        $perPage = 100,
+        $perPage = 50,
         $page = null,
         $options = []
     ) {

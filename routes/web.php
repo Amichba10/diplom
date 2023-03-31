@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\GroceryController;
 use App\Http\Controllers\ShowDocsController;
 use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
@@ -28,3 +29,6 @@ Route::any('/document/{document}/parseToFile',[ShowDocsController::class, 'parse
 Route::any('/document/{document}/parseToDisplay',[ShowDocsController::class, 'parseToDisplay'])->name('parseToDisplay');
 
 Route::any('/document/exceptional/',[ShowDocsController::class, 'addExceptional'])->name('addExceptional');
+
+Route::view('/grocery', 'grocery');
+Route::post('/grocery/post', [GroceryController::class, 'store']);
