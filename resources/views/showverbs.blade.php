@@ -11,17 +11,17 @@
 <body>
 <div class="container">
     <div class="alert alert-success" style="display:none"></div>
-    @foreach($res as $item)
-    <form id="myForm">
+    @foreach($verbs as $item)
+        <form id="myForm">
 
-            <input type="text"  id="word" value="{{$item}}" readonly="readonly">
+            <input type="text"  id="word" value="{{$item->word}}" readonly="readonly">
 
-        <button class="ajaxSubmit">Добавить в исключения</button>
-    </form>
+            <button class="ajaxSubmit">Добавить в исключения</button>
+        </form>
     @endforeach
 </div>
 <div>
-    {{$res ->links()}}
+    {{$verbs ->links()}}
 </div>
 <script src="http://code.jquery.com/jquery-3.3.1.min.js"
         integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
@@ -31,7 +31,7 @@
     jQuery(document).ready(function(){
         jQuery('.ajaxSubmit').click(function(e){
             e.preventDefault();
-            // console.log(e.target.parentNode.querySelector('#word').value);
+             console.log(e.target.parentNode.querySelector('#word').value);
             $.ajaxSetup({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="_token"]').attr('content')
@@ -42,7 +42,7 @@
                 method: 'post',
                 data: {
                     word: e.target.parentNode.querySelector('#word').value
-                    },
+                },
                 success: function(result){
                     jQuery('.alert').show();
                     jQuery('.alert').html(result.success);
@@ -50,5 +50,13 @@
         });
     });
 </script>
+<tr>
+    <form action={{route('showDocs')}}  enctype="multipart/form-data">
+        @csrf              <!-- с версии Laravel 5.6 -->
+        <!-- поле для загрузки файла -->
+        <input type="submit"    value="Назад">
+    </form>
+</tr>
+
 </body>
 </html>

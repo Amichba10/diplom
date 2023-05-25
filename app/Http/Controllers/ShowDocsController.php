@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\InsertVerbsJob;
 use App\Models\Document;
 use App\Models\Exceptional;
+use App\Models\Verb;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\HtmlString;
-use mysql_xdevapi\TableSelect;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
-use PHPWord_IOFactory;
-use Psy\Util\Str;
 
 class ShowDocsController extends Controller
 {
@@ -75,27 +73,17 @@ class ShowDocsController extends Controller
         $section->addText($out, [], []);
 
         $objWriter = IOFactory::createWriter($phpWord, "Word2007");
-        //    $objWriter = PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $objWriter->save(Storage::path($document->path . "/" . "parsing.docx"));
         return redirect()->back();
     }
 
     public function parseToDisplay(Document $document)
     {
-        $v = $this->parse($document);
-        $exceptionalWords = DB::table("exceptionals")
-            ->where("status", "APPROVED")
-            ->pluck("word")
-            ->toArray();
+        $job = new InsertVerbsJob();
 
-        $diff = array_diff($v, $exceptionalWords);
+        $job->handle($document);
 
-        $res = $this->paginate($diff);
-
-        // получить массив исключений
-        // отнять от массива $v массив исключений array_diff
-
-        return view("parsetodisplay", compact("res"));
+        return redirect()->route('showVerbs',compact('document'));
     }
 
     public function parse(Document $document)
@@ -145,6 +133,9 @@ class ShowDocsController extends Controller
         );
         //echo $bodyres;
         $arr = array_unique(explode(" ", $bodyres));
+        $arr = array_diff($arr, array(''));
+        $arr = array_values($arr);
+
         for ($i = 0; $i < count($arr); $i++) {
             $arr[$i] = $arr[$i] . "<br>";
         }
@@ -157,7 +148,7 @@ class ShowDocsController extends Controller
 
         preg_match_all(
             '/[a-ҿҽәӡӷҚԥ,-]{3,}(ит|еит|оит|уп|он|ан|хьаз|хьоу|лак|цыԥхьаӡа|
-                          аанӡа|ҵауа|аҵо|ҵар|ҵара|ҵаша|аанӡа|ӡом|ҵамкәа|ҵазар|ндаз|ижьҭеи|
+                          аанӡа|ҵауа|руа|аҵо|ҵар|ҵара|ҵаша|аанӡа|ӡом|ҵамкәа|ҵазар|ндаз|ижьҭеи|
                           наҵы|зҭгьы|ҵашәа)\b/ui',
             $delpr,
             $v
@@ -176,23 +167,14 @@ class ShowDocsController extends Controller
         $exceptional->status = Exceptional::STATUS_NEW;
         $exceptional->save();
 
-        return response()->json(['success'=>'Added']);
+        return response()->json(['success'=>'Добавлено']);
     }
-    public function paginate(
-        $items,
-        $perPage = 50,
-        $page = null,
-        $options = []
-    ) {
-        $page = $page ?: (Paginator::resolveCurrentPage() ?: 1);
-        $items =
-            $items instanceof Collection ? $items : Collection::make($items);
-        return new LengthAwarePaginator(
-            $items->forPage($page, $perPage),
-            $items->count(),
-            $perPage,
-            $page,
-            $options
-        );
+    public function showVerbs(Document $document)
+    {
+        $verbs = DB::table("verbs")
+            ->where("filename", $document->name)
+            ->paginate(50);
+        return view("showverbs", ["verbs" => $verbs]);
     }
 }
+

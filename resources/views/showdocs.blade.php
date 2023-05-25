@@ -15,7 +15,7 @@
     <table class="table table-bordered table-hover">
         <thead>
         <tr>
-            <th>ID</th>
+            <th>Id</th>
             <th>Name</th>
             <th>Path</th>
         </tr>
@@ -36,9 +36,15 @@
                     <!-- поле для загрузки файла -->
                     <input type="submit"    value="Вывести на экран">
                 </form></td>
-
         </tr>
         @endforeach
+        <tr>
+        <form action={{route('upload')}}  enctype="multipart/form-data">
+                @csrf              <!-- с версии Laravel 5.6 -->
+                <!-- поле для загрузки файла -->
+                <input type="submit"    value="Назад">
+            </form>
+        </tr>
         </tbody>
     </table>
 </div>
